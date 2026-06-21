@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import stat
 from datetime import datetime
 
 import send2trash
@@ -24,9 +25,10 @@ from reclaim.core.models import DeletionResult
 def is_protected(path, protected_roots: list[str] | None = None) -> bool:
     """Return ``True`` if ``path`` is, or lives under, a protected system root.
 
-    The candidate path and each root are normalized with ``os.path.abspath`` +
-    ``os.path.normcase`` (case-insensitive on Windows). A path is protected if
-    it EQUALS a root or is a strict descendant of one. The descendant check is
+    The candidate path and each root are canonicalized with ``os.path.realpath``
+    (resolves symlinks, junctions, and 8.3 short names like ``PROGRA~1``) +
+    ``os.path.normcase`` (case-insensitive on Windows). A path is protected if it
+    EQUALS a root or is a strict descendant of one. The descendant check is
     separator-aware so ``C:\\WindowsFoo`` is NOT considered under ``C:\\Windows``.
 
     Fail-safe: if anything cannot be resolved, the path is treated as protected.
@@ -35,7 +37,7 @@ def is_protected(path, protected_roots: list[str] | None = None) -> bool:
         protected_roots = constants.system_protected_roots()
 
     try:
-        cand = os.path.normcase(os.path.abspath(os.fspath(path)))
+        cand = os.path.normcase(os.path.realpath(os.fspath(path)))
     except (OSError, ValueError, TypeError):
         return True  # cannot resolve -> fail safe
 
@@ -47,7 +49,7 @@ def is_protected(path, protected_roots: list[str] | None = None) -> bool:
 
     for root in protected_roots:
         try:
-            root_norm = os.path.normcase(os.path.abspath(os.fspath(root)))
+            root_norm = os.path.normcase(os.path.realpath(os.fspath(root)))
         except (OSError, ValueError, TypeError):
             # An unresolvable root shouldn't weaken protection; skip it.
             continue
@@ -73,9 +75,24 @@ def is_protected(path, protected_roots: list[str] | None = None) -> bool:
     return False
 
 
-def _path_size(path: str) -> int:
-    """Return the size of a file, or the recursive size of a directory."""
+def _is_reparse_point(path: str) -> bool:
+    """True for a directory junction or symlink (a reparse point)."""
     try:
+        attrs = os.lstat(path).st_file_attributes
+        return bool(attrs & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    except (OSError, AttributeError):
+        return os.path.islink(path)
+
+
+def _path_size(path: str) -> int:
+    """Return the size of a file, or the recursive size of a directory.
+
+    A reparse point (junction/symlink) reports 0: deleting it removes only the
+    link, freeing no real bytes from its target.
+    """
+    try:
+        if _is_reparse_point(path):
+            return 0
         if os.path.isdir(path) and not os.path.islink(path):
             total = 0
             for dirpath, _dirnames, filenames in os.walk(path):
@@ -147,8 +164,12 @@ def delete(
 
         try:
             if permanent:
-                if os.path.isdir(path) and not os.path.islink(path):
+                if os.path.isdir(path) and not _is_reparse_point(os.fspath(path)):
                     shutil.rmtree(path)
+                elif os.path.isdir(path):
+                    # Directory junction/symlink: remove the link only, never
+                    # recurse into (or delete) its target.
+                    os.rmdir(path)
                 else:
                     os.remove(path)
             else:
