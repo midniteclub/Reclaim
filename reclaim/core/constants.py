@@ -60,9 +60,11 @@ def system_protected_roots() -> list[str]:
     add(sys.prefix)  # the running Python install
     add(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))  # the Reclaim app dir
 
-    # The root of the system drive itself.
-    system_drive = os.environ.get("SystemDrive", "C:")
-    add(system_drive + os.sep)
+    # NOTE: the bare drive root (e.g. ``C:\``) is intentionally NOT listed here.
+    # Protecting it as a subtree would make the entire drive undeletable, which
+    # defeats the cleaner's purpose. The bare root is instead protected as an
+    # EXACT path inside ``deletion.is_protected`` (you cannot delete ``C:\``
+    # itself, but its descendants remain deletable).
 
     # De-duplicate while preserving order.
     seen: set[str] = set()
