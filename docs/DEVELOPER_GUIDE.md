@@ -201,8 +201,14 @@ deletion through `core.deletion.delete`, and add tests to `tests/test_cli.py`.
 ## 7. Packaging
 
 `build.ps1` runs PyInstaller (`--onefile --windowed --name Reclaim
---collect-all send2trash reclaim/__main__.py`) → `dist/Reclaim.exe`. The exe is a
-GUI app on double-click and a CLI when given arguments (`Reclaim.exe scan C:\`).
+--collect-all send2trash reclaim/__main__.py`) → `dist/Reclaim.exe`, a ~13 MB
+single-file **GUI** app.
+
+Note: `--windowed` produces a GUI binary with **no attached console**, so CLI output
+(prints) won't appear if you pass it arguments. For CLI from a frozen binary, build a
+separate console executable: `python -m PyInstaller --onefile --console --name
+ReclaimCLI --collect-all send2trash reclaim/__main__.py`. From source, `python -m
+reclaim <command>` always works for the CLI.
 
 ---
 

@@ -14,5 +14,6 @@ python -m PyInstaller --noconfirm --onefile --windowed `
     reclaim\__main__.py
 
 Write-Host ""
-Write-Host "Done. The executable is at: dist\Reclaim.exe"
-Write-Host "Double-click it for the GUI, or run 'dist\Reclaim.exe scan C:\Users' for the CLI."
+Write-Host "Done. The GUI executable is at: dist\Reclaim.exe (double-click to launch)."
+Write-Host "For the command line, use 'python -m reclaim scan C:\Users' from source,"
+Write-Host "or build a console exe with:  python -m PyInstaller --onefile --console --name ReclaimCLI --collect-all send2trash reclaim\__main__.py"

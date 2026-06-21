@@ -43,8 +43,13 @@ If you want a double-clickable app with no Python needed at run time:
 
 ```powershell
 .\build.ps1
-# → dist\Reclaim.exe   (GUI on double-click; also a CLI: dist\Reclaim.exe scan C:\)
+# → dist\Reclaim.exe   (double-click to launch the GUI)
 ```
+
+`Reclaim.exe` is the **GUI** app. It's built `--windowed`, so it has no console — use
+it by double-clicking. For the **command line**, run `python -m reclaim <command>`
+from source. (If you specifically want a CLI executable, build a console variant:
+`python -m PyInstaller --onefile --console --name ReclaimCLI --collect-all send2trash reclaim/__main__.py`.)
 
 ---
 
