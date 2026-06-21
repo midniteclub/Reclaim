@@ -104,14 +104,14 @@ reclaim/core/   pure-Python engine (no UI) — scanner, categorizer, analysis,
                 junk, deletion, report, config, models, constants
 reclaim/cli/    argparse command line
 reclaim/gui/    tkinter desktop UI (app, widgets, background worker)
-tests/          pytest suite (74 tests)
+tests/          pytest suite (77 tests)
 ```
 
 ## Tests
 
 ```powershell
 python -m pip install pytest
-python -m pytest          # 74 tests
+python -m pytest          # 77 tests
 ```
 
 ## License / disclaimer

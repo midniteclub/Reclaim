@@ -60,7 +60,7 @@ reclaim/
     workers.py       ScanWorker — threaded scan + event queue
     widgets.py       squarify() + CategoryBars, Treemap, DetailTable
     app.py           ReclaimApp(tk.Tk), run()
-tests/               pytest suite (74 tests), conftest.py with make_tree fixture
+tests/               pytest suite (77 tests), conftest.py with make_tree fixture
 docs/                this guide, the user guide, spec & plan
 run.ps1/run.bat      run from source
 build.ps1            PyInstaller → dist/Reclaim.exe
@@ -131,14 +131,18 @@ is_protected(path, protected_roots=None) -> bool
 delete(paths, *, permanent=False, dry_run=False,
        on_progress=None, audit_log=None, protected_roots=None) -> DeletionResult
 ```
-- `is_protected` normalizes with `abspath` + `normcase`; a path is protected if it
-  equals or is a strict, separator-aware descendant of any root (so `C:\WindowsFoo`
-  is **not** under `C:\Windows`). A bare drive root (its own parent) is protected as
-  an exact path. Unresolvable paths → **protected** (fail-safe).
+- `is_protected` canonicalizes with `realpath` + `normcase` — `realpath` resolves
+  symlinks, junctions, and 8.3 short names (`PROGRA~1` → `Program Files`) so none of
+  those can be used to slip past the guard. A path is protected if it equals or is a
+  strict, separator-aware descendant of any root (so `C:\WindowsFoo` is **not** under
+  `C:\Windows`). A bare drive root (its own parent) is protected as an exact path.
+  Unresolvable paths → **protected** (fail-safe).
 - `delete` refuses protected paths (recorded in `failed` as `"protected"`, never
   raised), supports dry-run (touches nothing, writes no audit), recycles via
   `send2trash` by default or removes permanently, measures freed bytes, writes a
-  JSON-lines audit entry per real deletion, and continues past per-path errors.
+  JSON-lines audit entry per real deletion, and continues past per-path errors. A
+  directory junction/symlink is removed with `os.rmdir` (the link only) — deletion
+  never recurses into a reparse point's target.
 
 > **Invariant to preserve:** all deletion in the app must go through `delete()`.
 > Never call `os.remove`/`send2trash` directly from the CLI/GUI.
@@ -164,7 +168,7 @@ values. The Tk widgets (`CategoryBars`, `Treemap`, `DetailTable`) are thin views
 
 ```powershell
 python -m pip install pytest
-python -m pytest            # 74 tests, ~1s
+python -m pytest            # 77 tests, ~1s
 ```
 - Tests live in `tests/`; `conftest.py` provides `write_file(...)` and the
   `make_tree` fixture (a known tree under `tmp_path` with documented totals).
