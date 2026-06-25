@@ -8,3 +8,9 @@ dist/
 venv/
 *.egg-info/
 .reclaim/
+
+# Local tool / editor / session directories — never publish
+.claude/
+.serena/
+.idea/
+.vscode/
